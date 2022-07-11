@@ -239,8 +239,6 @@ async function backupUserFeedStatistics(secUID: string): Promise<UserFeedStats |
 app.use((request, response, next) => {
 	const authorization = request.header('authorization');
 
-	return next();
-
 	if (!authorization) {
 		return response
 			.status(401)
