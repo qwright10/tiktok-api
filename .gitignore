@@ -1,4 +1,7 @@
 archive
+build
 node_modules
 
 *.log
+plan.txt
+.env
