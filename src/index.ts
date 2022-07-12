@@ -30,32 +30,137 @@ interface UserFeedStats {
 	averageViews: number;
 }
 
-async function preferredUserFetch(username: string): Promise<UserMetadata | null> {
-	const url = new URL('/live/user', 'https://social-media-data-tt.p.rapidapi.com');
-	url.searchParams.append('username', username);
-	url.searchParams.append('fresh', '1');
+interface StatEntry {
+	preferredAPI: boolean;
+	path: string;
+	responseTime: number;
+	successful: boolean;
+	timestamp: number;
+}
+
+let statsEntries = new Set<StatEntry>();
+
+const msInDay = 1000 * 60 * 60 * 24;
+
+setInterval(() => {
+	console.log(statsEntries.size, 'entries as of', new Date().toLocaleTimeString());
+	for (const entry of statsEntries) {
+		if (performance.now() - entry.timestamp > msInDay) {
+			statsEntries.delete(entry);
+		}
+	}
+}, 60_000);
+
+async function apiFetch<T>(path: string, {
+	preferredAPI,
+	headers = {},
+	method = 'GET',
+	searchParams = {},
+	successCheck = () => true,
+}: {
+	preferredAPI: boolean;
+	headers?: { [key: string]: string | undefined };
+	method?: string;
+	searchParams?: { [key: string]: string | undefined };
+	successCheck?: (response: T) => boolean;
+}): Promise<T | null> {
+	const url = new URL(path, preferredAPI ? 'https://social-media-data-tt.p.rapidapi.com' : 'https://scraptik.p.rapidapi.com');
+	for (const [name, value] of Object.entries(searchParams)) {
+		if (typeof value === 'string') {
+			url.searchParams.append(name, value);
+		}
+	}
+
+	const beforeRequestTime = performance.now();
 
 	const request = await fetch(url.toString(), {
-		method: 'GET',
+		method,
 		headers: {
 			'X-RapidAPI-Key': API_KEY!,
-			'X-RapidAPI-Host': 'social-media-data-tt.p.rapidapi.com',
-		},
+			'X-RapidAPI-Host': preferredAPI ? 'social-media-data-tt.p.rapidapi.com' : 'scraptik.p.rapidapi.com',
+			...headers,
+		}
+	}).catch(err => {
+		console.error('Failed to fetch from', preferredAPI ? 'preferred' : 'backup', 'API:', err);
+		return null;
 	});
 
-	if (!request.ok) {
-		console.warn('Failed to fetch from preferred API:', request.statusText);
+	const responseTime = performance.now() - beforeRequestTime;
+
+	if (!request || !request.ok) {
+		if (request) console.warn('Failed to fetch from preferred API:', request.statusText);
+
+		statsEntries.add({
+			preferredAPI: preferredAPI,
+			path,
+			responseTime,
+			successful: false,
+			timestamp: performance.now(),
+		});
+
 		return null;
 	}
 
-	const body: PreferredAPI.UserMetadataResponse | null = await request
+	const body: T | null = await request
 		.json()
 		.catch(err => {
 			console.warn('Failed to parse body from preferred API:', err);
+			
+			statsEntries.add({
+				preferredAPI: preferredAPI,
+				path,
+				responseTime,
+				successful: false,
+				timestamp: performance.now(),
+			});
+
 			return null;
 		});
+
+	if (!body) return null;
+
+	console.log(body);
+
+	if (Reflect.has(body as any, 'messages')) {
+		return null;
+	}
 	
-	if (!body) return body;
+	const isSuccessful = successCheck(body);
+
+	if (isSuccessful) {
+		statsEntries.add({
+			preferredAPI: preferredAPI,
+			path,
+			responseTime,
+			successful: true,
+			timestamp: performance.now(),
+		});
+
+		return body;
+	} else {
+		statsEntries.add({
+			preferredAPI: preferredAPI,
+			path,
+			responseTime,
+			successful: true,
+			timestamp: performance.now(),
+		});
+
+		return null;
+	}
+}
+
+async function preferredUserFetch(username: string): Promise<UserMetadata | null> {
+	const body = await apiFetch<PreferredAPI.UserMetadataResponse>('/live/user', {
+		preferredAPI: true,
+		searchParams: {
+			username,
+			fresh: '1',
+		},
+		successCheck: r => r.sec_uid !== '',
+	});
+
+	if (!body) return null;
 	
 	return {
 		secUID: body.sec_uid,
@@ -69,38 +174,17 @@ async function preferredUserFetch(username: string): Promise<UserMetadata | null
 }
 
 async function backupUserFetch(username: string): Promise<UserMetadata | null> {
-	const url = new URL('/get-user', 'https://scraptik.p.rapidapi.com');
-	url.searchParams.append('keyword', username);
-	url.searchParams.append('count', '1');
-
-	const request = await fetch(url.toString(), {
-		method: 'GET',
-		headers: {
-			'X-RapidAPI-Key': API_KEY!,
-			'X-RapidAPI-Host': 'scraptik.p.rapidapi.com',
+	const body = await apiFetch<{ success: boolean } | { user: Shared.User }>('/get-user', {
+		preferredAPI: false,
+		searchParams: {
+			username,
 		},
+		successCheck: r => 'success' in r ? r.success : 'user' in r,
 	});
 
-	if (!request.ok) {
-		console.warn('Failed to fetch from backup API:', request.statusText);
-		return null;
-	}
+	if (!body || 'success' in body) return null;
 
-	const body: BackupAPI.UserSearchResponse = await request
-		.json()
-		.catch(err => {
-			console.warn('Failed to parse body from backup API:', err);
-			return null;
-		});
-	
-	if (!body) return body;
-
-	const user = body.user_list[0]?.user_info;
-
-	if (!user) {
-		console.error('User not found:', username);
-		return null;
-	}
+	const user = body.user;
 	
 	return {
 		secUID: user.sec_uid,
@@ -113,35 +197,17 @@ async function backupUserFetch(username: string): Promise<UserMetadata | null> {
 	};
 }
 
-async function preferredUserFeedStats({ secUID, username }: { secUID?: string | undefined; username?: string | undefined }): Promise<UserFeedStats | null> {
-	const url = new URL('/live/user/feed/v2', 'https://social-media-data-tt.p.rapidapi.com');
-	if (secUID) url.searchParams.append('sec_uid', secUID);
-	if (username) url.searchParams.append('username', username);
-
-	const request = await fetch(url.toString(), {
-		method: 'GET',
-		headers: {
-			'X-RapidAPI-Key': API_KEY!,
-			'X-RapidAPI-Host': 'social-media-data-tt.p.rapidapi.com',
+async function preferredUserFeedStats({ secUID, username }: { secUID?: string | undefined; username?: string | undefined }): Promise<UserFeedStats | null> {	
+	const body = await apiFetch<PreferredAPI.Page<Shared.Post>>('/live/user/feed/v2', {
+		preferredAPI: true,
+		searchParams: {
+			sec_uid: secUID,
+			username,
 		},
+		successCheck: r => r.media.length !== 0,
 	});
-
-	if (!request.ok) {
-		console.warn('Failed to fetch from preferred API:', request.statusText);
-
-		return null;
-	}
-
-	const body: PreferredAPI.Page<Shared.Post> | null = await request
-		.json()
-		.catch(err => {
-			console.warn('Failed to parse body from preferred API:', err);
-			return null;
-		});
-
-	console.log(body);
 	
-	if (!body || body.media.length === 0) return null;
+	if (!body) return null;
 
 	return calculateUserFeedStatistics(body.media);
 } 
@@ -174,62 +240,26 @@ function calculateUserFeedStatistics(media: Shared.Post[]): UserFeedStats {
 }
 
 async function backupUsernameToSecUID(username: string): Promise<string | null> {
-	const url = new URL('/username-to-id', 'https://scraptik.p.rapidapi.com');
-	url.searchParams.append('username', username);
-
-	const request = await fetch(url.toString(), {
-		method: 'GET',
-		headers: {
-			'X-RapidAPI-Key': API_KEY!,
-			'X-RApidAPI-Host': 'scraptik.p.rapidapi.com',
+	const body = await apiFetch<BackupAPI.UsernameToSecUIDResponse>('/username-to-id', {
+		preferredAPI: false,
+		searchParams: {
+			username,
 		},
+		successCheck: r => r.success,
 	});
-
-	if (!request.ok) {
-		console.warn('Failed to fetch from backup API:', request.statusText);
-		return null;
-	}
-
-	const body: BackupAPI.UsernameToSecUIDResponse | null = await request
-		.json()
-		.catch(err => {
-			console.warn('Failed to parse body from baclup API:', err);
-			return null;
-		});
 	
 	if (!body) return body;
-
-	if (!body.success) {
-		console.warn('Backup API request was unsuccessful:', body);
-		return null;
-	}
 
 	return body.sec_uid!;
 }
 
-async function backupUserFeedStatistics(secUID: string): Promise<UserFeedStats | null> {
-	const url = new URL('/user-posts', 'https://scraptik.p.rapidapi.com');
-	url.searchParams.append('sec_user_id', secUID);
-
-	const request = await fetch(url.toString(), {
-		method: 'GET',
-		headers: {
-			'X-RapidAPI-Key': API_KEY!,
-			'X-RapidAPI-Host': 'scraptik.p.rapidapi.com',
+async function backupUserFeedStatistics(secUID: string): Promise<UserFeedStats | null> {	
+	const body = await apiFetch<BackupAPI.Page<Shared.Post>>('/user-posts', {
+		preferredAPI: false,
+		searchParams: {
+			sec_user_id: secUID,
 		},
 	});
-
-	if (!request.ok) {
-		console.warn('Failed to fetch from backup API:', request.statusText);
-		return null;
-	}
-
-	const body: BackupAPI.Page<Shared.Post> = await request
-		.json()
-		.catch(err => {
-			console.warn('Failed to parse body from backup API:', err);
-			return null;
-		});
 	
 	if (!body) return null;
 
@@ -261,7 +291,7 @@ app.use((request, response, next) => {
 });
 
 app.get('/tiktok/user/:username', async (request, response) => {
-	const username = request.params.username;
+	const username = decodeURIComponent(request.params.username);
 
 	if (!username) {
 		return response
@@ -297,7 +327,9 @@ app.get('/tiktok/user/:username', async (request, response) => {
 
 app.get('/tiktok/feed', async (request, response) => {
 	let secUID: string | undefined | null = request.query['sec_uid'] as string | undefined;
-	const username = request.query['username'] as string | undefined;
+	let username = request.query['username'] as string | undefined;
+
+	if (username) username = decodeURIComponent(username);
 
 	if (
 		!secUID && !username // neither are present
@@ -339,7 +371,99 @@ app.get('/tiktok/feed', async (request, response) => {
 	return response
 		.status(200)
 		.json(backupResponse);
+});
 
+interface APIStats {
+	averageResponseTime: number;
+	successRate: number;
+
+	endpointStats: {
+		path: string;
+		averageResponseTime: number;
+		successRate: number;
+	}[];
+	maxAge: number;
+}
+
+function calculateAPIStatistics(preferredAPI: boolean, maxAge: number = msInDay): APIStats {
+	const now = performance.now();
+
+	const totalEntries = statsEntries.size;
+	let totalResponseTime = 0;
+	let totalSuccessfulResponses = 0;
+
+	const endpointBuckets = new Map<string, [number, number, number]>();
+
+	for (const entry of statsEntries) {
+		console.log('Looking for preferred?', preferredAPI, 'is preferred?', entry.preferredAPI, entry);
+		if (now - entry.timestamp > maxAge) continue;
+		if (preferredAPI !== entry.preferredAPI) continue;
+
+		totalResponseTime += entry.responseTime;
+		totalSuccessfulResponses += entry.successful ? 1 : 0;
+
+		const bucket = endpointBuckets.get(entry.path);
+
+		endpointBuckets.set(entry.path, [
+			bucket?.[0] ?? 0 + 1,
+			bucket?.[1] ?? 0 + entry.responseTime,
+			bucket?.[2] ?? 0 + (entry.successful ? 1 : 0),
+		]);
+	}
+
+	const mappedBuckets = [] as APIStats['endpointStats'];
+
+	for (const [path, bucket] of endpointBuckets.entries()) {
+		mappedBuckets.push({
+			path,
+			averageResponseTime: bucket[1] / bucket[0],
+			successRate: bucket[2] / bucket[0],
+		});
+	}
+
+	return {
+		averageResponseTime: totalResponseTime / totalEntries,
+		successRate: totalSuccessfulResponses / totalEntries,
+
+		endpointStats: mappedBuckets,
+		maxAge,
+	};
+}
+
+app.get('/tiktok/stats', (_, response) => {
+	if (!statsEntries.size) {
+		return response
+			.status(200)
+			.json({
+				entries: [],
+				day: {
+					averageResponseTime: 0,
+					successRate: 1,
+					endpointStats: [],
+					maxAge: msInDay,
+				},
+				week: {
+					averageResponseTime: 0,
+					successRate: 1,
+					endpointStats: [],
+					maxAge: msInDay * 7,
+				}
+			});
+	}
+
+	return response
+		.status(200)
+		.send({
+			entries: [...statsEntries],
+			preferred: {
+				day: calculateAPIStatistics(true, msInDay),
+				week: calculateAPIStatistics(true, msInDay * 7),
+			},
+			backup: {
+				day: calculateAPIStatistics(false, msInDay),
+				week: calculateAPIStatistics(false, msInDay * 7),
+			}
+		});
 });
 
 app.listen(PORT, 'localhost', () => {
