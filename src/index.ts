@@ -19,6 +19,7 @@ interface UserMetadata {
 	name: string;
 	username: string;
 	avatarURL: string;
+	bio: string;
 	followerCount: number;
 	followingCount: number;
 	isPreferredAPI: boolean;
@@ -166,6 +167,7 @@ async function preferredUserFetch(username: string): Promise<UserMetadata | null
 		secUID: body.sec_uid,
 		name: body.nickname,
 		username: body.unique_id,
+		bio: body.signature,
 		avatarURL: body.avatar_larger,
 		followerCount: body.follower_count,
 		followingCount: body.following_count,
@@ -185,11 +187,14 @@ async function backupUserFetch(username: string): Promise<UserMetadata | null> {
 	if (!body || 'success' in body) return null;
 
 	const user = body.user;
+
+	return user as any;
 	
 	return {
 		secUID: user.sec_uid,
 		name: user.nickname,
 		username: user.unique_id,
+		bio: user.signature,
 		avatarURL: user.avatar_larger.url_list[0]!,
 		followerCount: user.follower_count,
 		followingCount: user.following_count,
