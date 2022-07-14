@@ -388,7 +388,7 @@ interface APIStats {
 function calculateAPIStatistics(preferredAPI: boolean, maxAge: number = msInDay): APIStats {
 	const now = performance.now();
 
-	const totalEntries = statsEntries.size;
+	let totalEntries = 0;
 	let totalResponseTime = 0;
 	let totalSuccessfulResponses = 0;
 
@@ -399,6 +399,7 @@ function calculateAPIStatistics(preferredAPI: boolean, maxAge: number = msInDay)
 		if (now - entry.timestamp > maxAge) continue;
 		if (preferredAPI !== entry.preferredAPI) continue;
 
+		totalEntries++;
 		totalResponseTime += entry.responseTime;
 		totalSuccessfulResponses += entry.successful ? 1 : 0;
 
