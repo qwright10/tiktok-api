@@ -7,7 +7,7 @@ const PORT = Number(process.env['PORT']) || 7000;
 const API_KEY = process.env['API_KEY'];
 const app = express();
 
-import { PreferredAPI, BackupAPI, Shared } from './types';
+import { PreferredAPI, BackupAPI, Shared, InstagramAPI } from './types';
 
 if (!API_KEY) {
 	console.error('Missing API key');
@@ -269,6 +269,8 @@ async function backupUserFeedStatistics(secUID: string): Promise<UserFeedStats |
 app.use((request, response, next) => {
 	const authorization = request.header('authorization');
 
+	return next();
+
 	if (!authorization) {
 		return response
 			.status(401)
@@ -288,6 +290,70 @@ app.use((request, response, next) => {
 	}
 
 	return next();
+});
+
+/* enum PostType {
+	photo = 1,
+	carousel = 8,
+	igtv = 2,
+} */
+
+app.get('/instagram/post/:id', async (request, response) => {
+	const id = request.params.id;
+
+	if (!/[a-z0-9]{11}/i.test(id)) {
+		return response
+			.status(400)
+			.json({
+				statusCode: 400,
+				message: 'Post ID is invalid',
+			});
+	}
+
+	const url = new URL('/post/info', 'https://instagram-data1.p.rapidapi.com');
+	url.searchParams.append('post', id);
+
+	const post = await fetch(url, {
+		headers: {
+			'X-RapidAPI-Key': API_KEY!,
+			'X-RapidAPI-Host': 'instagram-data1.p.rapidapi.com',
+		},
+	});
+
+	if (!post.ok) {
+		return response
+			.status(500)
+			.json({
+				statusCode: 500,
+				message: 'Instagram API request was unsuccessful',
+			});
+	}
+
+	const body: InstagramAPI.Post = await post
+		.json()
+		.catch(err => {
+			console.error('Failed to parse Instagram API body:', err);
+			return null;
+		});
+	
+	if (!body) return null;
+
+	if (request.query['raw']) {
+		return response
+			.status(200)
+			.json(body);
+	}
+
+	return response
+		.status(200)
+		.json({
+			comment_count: body.comment_count,
+			like_count: body.like_count,
+			view_count: 'view_count' in body ? body.view_count : 0,
+			caption: body.caption.text,
+			type: body.media_type,
+			thumbnail: 'image_versions2' in body ? body.image_versions2.candidates.reduce((a, b) => a.height > b.height ? a : b).url : 'carousel_media' in body ? body.carousel_media[0]!.image_versions2.candidates.reduce((a, b) => a.height > b.height ? a : b).url : null,
+		});
 });
 
 app.get('/tiktok/user/:username', async (request, response) => {

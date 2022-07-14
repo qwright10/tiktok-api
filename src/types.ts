@@ -668,3 +668,344 @@ export namespace BackupAPI {
 		}>;
 	}
 }
+
+export namespace InstagramAPI {
+	export interface BasePost {
+		can_see_insights_as_brand: boolean;
+		can_view_more_preview_comments: boolean;
+		can_viewer_reshare: boolean;
+		can_viewer_save: boolean;
+		caption: {
+			bit_flags: number;
+			content_type: string;
+			created_at: number;
+			created_at_utc: number;
+			did_report_as_spam: boolean;
+			is_covered: boolean;
+			media_id: number;
+			pk: number;
+			private_reply_status: number;
+			share_enabled: boolean;
+			status: string;
+			text: string;
+			type: number;
+			user: {
+				full_name: string;
+				is_private: boolean;
+				is_verified: boolean;
+				pk: number;
+				profile_pic_id: string;
+				profile_pic_url: string;
+				username: string;
+			};
+			user_id: number;
+		};
+		caption_is_edited: boolean;
+		client_cache_key: string;
+		code: string;
+		comment_count: number;
+		comment_inform_treatment: {
+			action_type: unknown | null;
+			should_have_inform_treatment: boolean;
+			text: string;
+			url: unknown | null;
+		};
+		comment_likes_enabled: boolean;
+		comment_threading_enabled: boolean;
+		commerciality_status: string;
+		deleted_reason: number;
+		device_timestamp: number;
+		featured_products_cta: unknown | null;
+		filter_type: number;
+		fundraiser_tag: { has_standalone_fundraiser: boolean };
+		has_liked: boolean;
+		has_more_comments: boolean;
+		has_shared_to_fb: number;
+		hide_view_all_comment_entrypoint: boolean;
+		id: string;
+		inline_composer_display_condition: string;
+		inline_composer_imp_trigger_time: number;
+		integrity_review_decision: string;
+		is_in_profile_grid: boolean;
+		is_organic_product_tagging_eligible: boolean;
+		is_paid_partnership: boolean;
+		is_unified_video: boolean;
+		is_visual_reply_commenter_notice_enabled: boolean;
+		lat: number;
+		like_and_view_counts_disabled: boolean;
+		like_count: number;
+		lng: number;
+		location: {
+			address: string;
+			city: string;
+			external_source: string;
+			facebook_places_id: number;
+			has_viewer_saved: boolean;
+			is_eligible_for_guides: boolean;
+			lat: number;
+			lng: number;
+			name: string;
+			pk: number;
+			short_name: string;
+		};
+		max_num_visible_preview_comments: number;
+		media_type: number;
+		music_metadata: {
+			audio_type: unknown | null;
+			music_canonical_id: string;
+			music_info: unknown | null;
+			original_sound_info: unknown | null;
+		};
+		next_max_id: number;
+		organic_tracking_token: string;
+		original_media_has_visual_reply_media: boolean;
+		owner: {
+			account_badges: unknown[];
+			fan_club_info: {
+				fan_club_id: unknown | null;
+				fan_club_name: unknown | null;
+			};
+			friendship_status: {
+				following: boolean;
+				is_bestie: boolean;
+				is_feed_favorite: boolean;
+				is_restricted: boolean;
+				outgoing_request: boolean;
+			};
+			full_name: string;
+			has_anonymous_profile_picture: boolean;
+			has_highlight_reels: boolean;
+			is_favorite: boolean;
+			is_private: boolean;
+			is_unpublished: boolean;
+			is_verified: boolean;
+			latest_reel_media: number;
+			pk: number;
+			profile_pic_id: string;
+			profile_pic_url: string;
+			transparency_product_enabled: boolean;
+			username: string;
+		};
+		photo_of_you: boolean;
+		pk: number;
+		preview_comments: {
+			bit_flags: number;
+			comment_like_count: number;
+			content_type: string;
+			created_at: number;
+			created_at_utc: number;
+			did_report_as_spam: boolean;
+			has_liked_comment: boolean;
+			is_covered: boolean;
+			media_id: number;
+			pk: number;
+			private_reply_status: number;
+			share_enabled: boolean;
+			status: string;
+			text: string;
+			type: number;
+			user: {
+				full_name: string;
+				is_private: boolean;
+				is_verified: boolean;
+				pk: number;
+				profile_pic_id: string;
+				profile_pic_url: string;
+				username: string;
+			};
+			user_id: number;
+		}[];
+		product_type: string;
+		profile_grid_control_enabled: boolean;
+		sharing_friction_info: {
+			bloks_app_url: unknown | null;
+			sharing_friction_payload: unknown | null;
+			should_have_sharing_friction: boolean;
+		};
+		should_request_ads: boolean;
+		taken_at: number;
+		top_likers: unknown[];
+		user: {
+			account_badges: unknown[];
+			fan_club_info: {
+				fan_club_id: unknown | null;
+				fan_club_name: unknown | null;
+			};
+			friendship_status: {
+				following: boolean;
+				is_bestie: boolean;
+				is_feed_favorite: boolean;
+				is_restricted: boolean;
+				outgoing_request: boolean;
+			};
+			full_name: string;
+			has_anonymous_profile_picture: boolean;
+			has_highlight_reels: boolean;
+			is_favorite: boolean;
+			is_private: boolean;
+			is_unpublished: boolean;
+			is_verified: boolean;
+			latest_reel_media: number;
+			pk: number;
+			profile_pic_id: string;
+			profile_pic_url: string;
+			transparency_product_enabled: boolean;
+			username: string;
+		};
+		usertags: {
+			in: {
+				categories: unknown | null;
+				duration_in_video_in_sec: unknown | null;
+				position: [number, number];
+				show_category_of_user: boolean;
+				start_time_in_video_in_sec: number | null;
+				user: {
+					full_name: string;
+					is_private: boolean;
+					is_verified: boolean;
+					pk: number;
+					profile_pic_id: string;
+					profile_pic_url: string;
+					username: string;
+				}
+			}[];
+		};
+	}
+
+	interface ImageVersions2 {
+		candidates: {
+			estimated_scans_sizes: number[];
+			height: number;
+			scans_profile: string;
+			url: string;
+			width: number;
+		}[];
+	}
+
+	export interface PhotoPost extends BasePost {
+		image_versions2: {
+			candidates: {
+				estimated_scans_sizes: number[];
+				height: number;
+				scans_profile: string;
+				url: string;
+				width: number;
+			}[];
+		};
+		original_height: number;
+		original_width: number;
+	}
+
+	export interface UserTag {
+		in: {
+			categories: unknown | null;
+			duration_in_video_in_sec: unknown | null;
+			position: [number, number];
+			show_category_of_user: boolean;
+			start_time_in_video_in_sec: unknown | null;
+			user: {
+				full_name: string;
+				is_private: boolean;
+				is_verified: boolean;
+				pk: number;
+				profile_pic_id: string;
+				profile_pic_url: string;
+				username: string;
+			}
+		}[];
+	}
+
+	export interface CarouselPost extends BasePost {
+		carousel_media_count: number;
+		carousel_media: {
+			carousel_parent_id: string;
+			commerciality_status: string;
+			id: string;
+			image_versions2: ImageVersions2;
+			media_type: number; // 1
+			original_height: number;
+			original_width: number;
+			pk: number;
+			usertags: UserTag[];
+		}[];
+	}
+
+	export interface IGTVPost extends BasePost {
+		has_audio: boolean;
+		igtv_exists_in_viewer_series: boolean;
+		image_versions: ImageVersions2 & {
+			additional_candidates: {
+				first_frame: {
+					height: number;
+					scans_profile: string;
+					url: string;
+					width: number;
+				};
+				igtv_first_frame: {
+					height: number;
+					scans_profile: string;
+					url: string;
+					width: number;
+				};
+			};
+			original_width: number;
+		};
+		is_dash_eligible: number;
+		is_post_live: boolean;
+		media_cropping_info: {
+			feed_preview_crop: unknown | null;
+			square_crop: unknown | null;
+			three_by_four_preview_crop: unknown | null;
+			thumbnails: {
+				file_size_kb: number;
+				igtv_exists_in_viewer_series: boolean;
+				max_thumbnails_per_sprite: number;
+				rendered_width: number;
+				sprite_height: number;
+				sprite_urls: string[];
+				sprite_width: number;
+				thumbnail_duration: number;
+				thumbnail_height: number;
+				thumbnail_width: number;
+				thumbnails_per_row: number;
+				total_thumbnail_num_per_sprite: number;
+				video_length: number;	
+			};
+		};
+		nearly_complete_copyright_match: boolean;
+		number_of_qualities: number;
+		original_height: number;
+		original_width: number;
+		thumbnails: {
+			file_size_kb: number;
+			igtv_exists_in_viewer_series: boolean;
+			max_thumbnails_per_sprite: number;
+			rendered_width: number;
+			sprite_height: number;
+			sprite_urls: string[];
+			sprite_width: number;
+			thumbnail_duration: number;
+			thumbnail_height: number;
+			thumbnail_width: number;
+			thumbnails_per_row: number;
+			total_thumbnail_num_per_sprite: number;
+			video_length: number;	
+		};
+		title: string;
+		video_codec: string;
+		video_dash_manifest: string;
+		video_duration: number;
+		video_subtitles_confidence: number;
+		video_subtitles_uri: string;
+		video_versions: {
+			height: number;
+			id: string;
+			type: number;
+			url: string;
+			width: number;
+		}[];
+		view_count: number;
+	}
+
+	export type Post = PhotoPost | CarouselPost | IGTVPost;
+}
