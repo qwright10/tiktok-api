@@ -1,11 +1,14 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import bodyParser from 'body-parser';
 
 dotenv.config();
 
 const PORT = Number(process.env['PORT']) || 7000;
 const API_KEY = process.env['API_KEY'];
 const app = express();
+
+app.use(bodyParser.text());
 
 import { PreferredAPI, BackupAPI, Shared, InstagramAPI } from './types';
 
@@ -274,6 +277,8 @@ async function backupUserFeedStatistics(secUID: string): Promise<UserFeedStats |
 app.use((request, response, next) => {
 	const authorization = request.header('authorization');
 
+	response.set('Content-Security-Policy', 'default-src \'self\'');
+
 	if (process.env['DEV'] === 'TRUE') return next();
 
 	if (!authorization) {
@@ -303,10 +308,10 @@ app.use((request, response, next) => {
 	igtv = 2,
 } */
 
-app.get('/instagram/post/:id', async (request, response) => {
-	const id = request.params.id;
+app.post('/instagram/post', async (request, response) => {
+	const id = request.body as string;
 
-	if (!/[a-z0-9]{11}/i.test(id)) {
+	if (typeof id !== 'string' || !/https:\/\/www\.instagram\.com\/p\/[A-Za-z0-9\-_]{11}\/?/i.test(id)) {
 		return response
 			.status(400)
 			.json({
