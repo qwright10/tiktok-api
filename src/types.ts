@@ -1008,4 +1008,106 @@ export namespace InstagramAPI {
 	}
 
 	export type Post = PhotoPost | CarouselPost | IGTVPost;
+
+	export interface User {
+		biography: string;
+		bio_links: unknown[];
+		biography_with_entities: {
+			raw_text: string;
+			entities: unknown[];
+		};
+		blocked_by_viewer: boolean;
+		restricted_by_viewer: boolean;
+		country_block: boolean;
+		external_url: unknown | null;
+		external_url_linkshimmed: unknown | null;
+		edge_followed_by: {
+			count: number;
+		};
+		fbid: string;
+		followed_by_viewer: boolean;
+		edge_follow: {
+			count: number;
+		};
+		follows_viewer: boolean;
+		full_name: string;
+		group_metadata: unknown | null;
+		has_ar_effects: boolean;
+		has_clips: boolean;
+		has_guides: boolean;
+		has_channel: boolean;
+		has_blocked_viewer: boolean;
+		highlight_reel_count: number;
+		has_requested_viewer: boolean;
+		hide_like_and_view_counts: boolean;
+		id: string;
+		is_business_account: boolean;
+		is_eligible_to_view_account_transparency: boolean;
+		is_professional_account: boolean;
+		is_supervision_enabled: boolean;
+		is_guardian_of_viewer: boolean;
+		is_supervised_by_viewer: boolean;
+		is_supervised_user: boolean;
+		is_embeds_disabled: boolean;
+		is_joined_recently: boolean;
+		guardian_id: unknown | null;
+		business_address_json: unknown | null;
+		business_contact_method: string;
+		business_email: unknown | null;
+		business_phone_number: unknown | null;
+		business_category_name: unknown | null;
+		overall_category_name: unknown | null;
+		category_enum: unknown | null;
+		category_name: string;
+		is_private: boolean;
+		is_verified: boolean;
+		edge_mutual_followed_by: {
+			count: number;
+			edges: unknown[];
+		};
+		profile_pic_url: string;
+		profile_pic_url_hd: string;
+		requested_by_viewer: boolean;
+		should_show_category: boolean;
+		should_show_public_contacts: boolean;
+		state_controlled_media_country: unknown | null;
+		location_transparency_country: unknown | null;
+		transparency_label: unknown | null;
+		transparency_product: string;
+		username: string;
+		connected_fb_page: unknown | null;
+		pronouns: unknown[];
+		edge_felix_video_timeline: {
+			count: number;
+			page_info: {
+				has_next_page: boolean;
+				end_cursor: unknown | null;
+			};
+			edges: unknown[];
+		};
+		edge_owner_to_timeline_media: {
+			count: number;
+			page_info: {
+				has_next_page: boolean;
+				end_cursor: unknown | null;
+			};
+			edges: unknown[];
+		};
+		edge_saved_media: {
+			count: number;
+			page_info: {
+				has_next_page: boolean;
+				end_cursor: unknown | null;
+			};
+			edges: unknown[];
+		};
+		edge_media_collections: {
+			count: number;
+			page_info: {
+				has_next_page: boolean;
+				end_cursor: unknown | null;
+			};
+			edges: unknown[];
+		};
+	}
 }

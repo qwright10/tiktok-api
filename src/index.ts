@@ -346,7 +346,12 @@ app.post('/instagram/post', async (request, response) => {
 			return null;
 		});
 	
-	if (!body) return null;
+	if (!body) return response
+		.status(500)
+		.json({
+			statusCode: 500,
+			message: 'Instagram API response body decode was unsuccessful',
+		});
 
 	if (request.query['raw']) {
 		return response
@@ -363,6 +368,60 @@ app.post('/instagram/post', async (request, response) => {
 			caption: body.caption.text,
 			type: body.media_type,
 			thumbnail: 'image_versions2' in body ? body.image_versions2.candidates.reduce((a, b) => a.height > b.height ? a : b).url : 'carousel_media' in body ? body.carousel_media[0]!.image_versions2.candidates.reduce((a, b) => a.height > b.height ? a : b).url : null,
+		});
+});
+
+app.get('/instagram/user/:username', async (request, response) => {
+	const username = request.params.username;
+
+	const url = new URL('/user/info', 'https://instagram-data1.p.rapidapi.com');
+	url.searchParams.append('username', username);
+
+	const user = await fetch(url, {
+		headers: {
+			'X-RapidAPI-Key': API_KEY!,
+			'X-RapidAPI-Host': 'instagram-data1.p.rapidapi.com',
+		},
+	});
+
+	if (!user.ok) {
+		return response
+			.status(500)
+			.json({
+				statusCode: 500,
+				message: 'Instagram API request was unsuccessful',
+			});
+	}
+
+	const body: InstagramAPI.User = await user
+		.json()
+		.catch(err => {
+			console.error('Failed to parse Instagram API body:', err);
+			return null;
+		});
+	
+	if (!body) return response
+		.status(500)
+		.json({
+			statusCode: 500,
+			message: 'Instagram API response body decode was unsuccessful',
+		});
+	
+	if (request.query['raw']) {
+		return response
+			.status(200)
+			.json(body);
+	}
+
+	return response
+		.status(200)
+		.json({
+			name: body.full_name,
+			username: body.username,
+			avatarURL: body.profile_pic_url_hd,
+			follower_count: body.edge_followed_by.count,
+			following_count: body.edge_follow.count,
+			bio: body.biography,
 		});
 });
 
